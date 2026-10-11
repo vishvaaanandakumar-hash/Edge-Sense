@@ -1,0 +1,16 @@
+import React, { useEffect, useState } from 'react';
+import { Calendar, Download, Filter, History, Search } from 'lucide-react';
+import api from '@/utils/api';
+
+type HistoryItem = { id: number; type?: string; event_type?: string; source?: string; description: string; timestamp: string };
+
+const HistoryPage: React.FC = () => {
+  const [items, setItems] = useState<HistoryItem[]>([]);
+  const [query, setQuery] = useState('');
+  const [type, setType] = useState('all');
+  const load = () => api.getActivityHistory({ per_page: 100, search: query || undefined, type: type === 'all' ? undefined : type }).then((response) => setItems((response.data || []) as HistoryItem[])).catch(() => setItems([]));
+  useEffect(() => { load(); }, [query, type]);
+  const exportHistory = async () => { const blob = await api.exportHistory({ type: type === 'all' ? undefined : type }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = 'edgesense-history.csv'; link.click(); URL.revokeObjectURL(url); };
+  return <div className="es-page"><div className="es-page-header" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}><div><div className="es-badge es-badge-orange"><History size={14} /> Local event journal</div><h1 className="es-page-title">Activity History</h1><p className="es-page-subtitle">Search device, alert, motion, and voice events stored by the local service.</p></div><button id="history-export" className="es-btn es-btn-secondary" onClick={exportHistory}><Download size={16} /> Export CSV</button></div><div className="es-card" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: '1rem' }}><div style={{ flex: 1, minWidth: 220, position: 'relative' }}><Search size={16} style={{ position: 'absolute', left: 12, top: 12, color: 'var(--text-tertiary)' }} /><input id="history-search" className="es-input" style={{ paddingLeft: 36 }} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search events" /></div><select id="history-type" className="es-input" style={{ width: 180 }} value={type} onChange={(event) => setType(event.target.value)}><option value="all">All event types</option><option value="device">Device</option><option value="alert">Alert</option><option value="voice">Voice</option></select><button id="history-refresh" className="es-btn es-btn-ghost" onClick={load}><Filter size={16} /> Refresh</button></div><div className="es-card">{items.length === 0 ? <p style={{ color: 'var(--text-tertiary)' }}>No matching events.</p> : items.map((item) => <div key={item.id} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 12, alignItems: 'center', padding: '.8rem 0', borderBottom: '1px solid var(--border-subtle)' }}><div style={{ color: 'var(--es-orange)' }}><Calendar size={16} /></div><div><strong>{item.description}</strong><div style={{ color: 'var(--text-tertiary)', fontSize: '.78rem' }}>{item.type || item.event_type || 'event'} {item.source ? `· ${item.source}` : ''}</div></div><time style={{ color: 'var(--text-tertiary)', fontSize: '.78rem' }}>{new Date(item.timestamp).toLocaleString()}</time></div>)}</div></div>;
+};
+export default HistoryPage;
