@@ -4,9 +4,7 @@ import Sidebar from '@/components/layout/Sidebar';
 import Topbar from '@/components/layout/Topbar';
 import Dashboard from '@/pages/Dashboard';
 import LiveMonitoring from '@/pages/LiveMonitoring';
-import EnergyPage from '@/pages/EnergyPage';
 import AlertsPage from '@/pages/AlertsPage';
-import VoicePage from '@/pages/VoicePage';
 import AnalyticsPage from '@/pages/AnalyticsPage';
 import HistoryPage from '@/pages/HistoryPage';
 import HardwarePage from '@/pages/HardwarePage';
@@ -39,9 +37,7 @@ const App: React.FC = () => (
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/monitoring" element={<LiveMonitoring />} />
-            <Route path="/energy" element={<EnergyPage />} />
             <Route path="/alerts" element={<AlertsPage />} />
-            <Route path="/voice" element={<VoicePage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/predictive" element={<PredictiveHealth />} />
             <Route path="/history" element={<HistoryPage />} />

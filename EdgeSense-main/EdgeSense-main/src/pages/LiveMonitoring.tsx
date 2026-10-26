@@ -30,7 +30,7 @@ const SENSOR_CONFIGS = [
   { key: 'temperature', label: 'Temperature', unit: '°C', icon: <Thermometer size={18} />, color: '#F06464', gradientId: 'tempG' },
   { key: 'humidity', label: 'Humidity', unit: '%', icon: <Droplets size={18} />, color: '#60A5FA', gradientId: 'humG' },
   { key: 'brightness', label: 'Brightness', unit: 'lux', icon: <Sun size={18} />, color: '#FFE8A3', gradientId: 'luxG' },
-  { key: 'motion', label: 'Motion Events', unit: '', icon: <Move size={18} />, color: '#F5B942', gradientId: 'motG' },
+  { key: 'motion', label: 'Motion (presence sensor)', unit: '', icon: <Move size={18} />, color: '#F5B942', gradientId: 'motG' },
   { key: 'presence', label: 'Presence', unit: '', icon: <Eye size={18} />, color: '#38C98B', gradientId: 'presG' },
 ];
 
@@ -185,7 +185,7 @@ const LiveMonitoring: React.FC = () => {
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: 4 }}>
                     {sc.label}
                   </div>
-                  {reading ? (
+                  {reading?.is_valid ? (
                     <>
                       <div style={{ fontSize: '1.5rem', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
                         {sc.key === 'motion' || sc.key === 'presence' ? (
@@ -196,8 +196,10 @@ const LiveMonitoring: React.FC = () => {
                           ) : (
                             <span style={{ color: 'var(--text-tertiary)' }}>Clear</span>
                           )
+                        ) : sc.key === 'brightness' && reading.unit === 'state' ? (
+                          reading.value > 0 ? 'Bright' : 'Dark'
                         ) : (
-                          <AnimatedNumber value={reading.value} suffix={` ${sc.unit}`} decimals={1} />
+                          <AnimatedNumber value={reading.value} suffix={` ${reading.unit || sc.unit}`} decimals={1} />
                         )}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 4 }}>
@@ -208,7 +210,7 @@ const LiveMonitoring: React.FC = () => {
                       </div>
                     </>
                   ) : (
-                    <div style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)' }}>—</div>
+                    <div style={{ fontSize: '0.875rem', color: 'var(--text-tertiary)' }}>Unavailable</div>
                   )}
                 </div>
               </StaggerItem>
@@ -232,7 +234,7 @@ const LiveMonitoring: React.FC = () => {
           {/* Motion & Presence combined */}
           <SensorChart
             sensorKey="motion"
-            label="Motion Activity"
+            label="Motion from Presence"
             unit=""
             color="#F5B942"
             gradientId="motionG"

@@ -111,7 +111,10 @@ export const useSystemStore = create<SystemState>((set) => ({
   demoMode: true,
   sidebarCollapsed: false,
   setStatus: (partial) =>
-    set((state) => ({ status: { ...state.status, ...partial } })),
+    set((state) => ({
+      status: { ...state.status, ...partial },
+      ...(partial.demoMode !== undefined ? { demoMode: partial.demoMode } : {}),
+    })),
   setDemoMode: (enabled) =>
     set((state) => ({
       demoMode: enabled,

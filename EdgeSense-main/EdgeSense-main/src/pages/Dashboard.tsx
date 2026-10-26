@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   Thermometer, Droplets, Sun, Move, Eye, Lightbulb,
-  Fan, Zap, Activity, Clock, AlertTriangle, HeartPulse,
+  Fan, Activity, Clock, AlertTriangle, HeartPulse,
   TrendingUp, Wifi, WifiOff, ArrowUpRight, ArrowDownRight,
 } from 'lucide-react';
 import {
@@ -184,16 +184,23 @@ const Dashboard: React.FC = () => {
   const [chartData, setChartData] = useState<any[]>([]);
   const [recentEvents, setRecentEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [lightControlBusy, setLightControlBusy] = useState(false);
+  const [fanControlBusy, setFanControlBusy] = useState(false);
+  const [lightControlError, setLightControlError] = useState('');
+  const [fanControlError, setFanControlError] = useState('');
+  const setDevices = useDeviceStore(state => state.setDevices);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [readings, history] = await Promise.all([
+        const [readings, history, deviceResponse] = await Promise.all([
           api.sensorHistory('temperature', '1h').catch(() => ({ data: [] })),
           api.getActivityHistory({ per_page: 10 }).catch(() => ({ data: [] })),
+          api.getDevices().catch(() => ({ data: [] })),
         ]);
         setChartData(readings.data || []);
         setRecentEvents(history.data || []);
+        setDevices(deviceResponse.data || []);
       } catch {
         // Backend may be offline
       } finally {
@@ -203,19 +210,44 @@ const Dashboard: React.FC = () => {
     load();
     const interval = setInterval(load, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [setDevices]);
 
   const temp = sensors.temperature;
   const humidity = sensors.humidity;
   const brightness = sensors.brightness;
   const motionSensor = sensors.motion;
   const presence = sensors.presence;
-  const power = sensors.power;
-
   const lightDevice = devices.find(d => d.type === 'light');
   const fanDevice = devices.find(d => d.type === 'fan');
   const activeAlerts = alerts.filter(a => a.state === 'active');
   const source = demoMode ? 'simulated' : status.esp32 as any;
+
+  const toggleDevice = async (device: any, type: 'light' | 'fan') => {
+    if (!device || (type === 'light' ? lightControlBusy : fanControlBusy)) return;
+
+    const setBusy = type === 'light' ? setLightControlBusy : setFanControlBusy;
+    const setError = type === 'light' ? setLightControlError : setFanControlError;
+
+    setBusy(true);
+    setError('');
+
+    try {
+      const nextState = device.state === 'on' ? 'off' : 'on';
+      await api.controlDevice(device.id, nextState);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : `Could not control the ${type}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggleLight = async () => {
+    await toggleDevice(lightDevice, 'light');
+  };
+
+  const toggleFan = async () => {
+    await toggleDevice(fanDevice, 'fan');
+  };
 
   return (
     <PageTransition>
@@ -279,8 +311,10 @@ const Dashboard: React.FC = () => {
               id="metric-brightness"
               icon={<Sun size={18} />}
               label="Brightness"
-              value={brightness?.value ?? null}
-              unit={brightness?.unit || 'lux'}
+              value={brightness?.unit === 'state'
+                ? brightness.value > 0 ? 'Bright' : 'Dark'
+                : brightness?.value ?? null}
+              unit={brightness?.unit === 'state' ? '' : brightness?.unit || 'lux'}
               status={source}
               subtitle={brightness ? `Source: ${brightness.source}` : 'Waiting for data...'}
               color="var(--es-yellow)"
@@ -291,9 +325,9 @@ const Dashboard: React.FC = () => {
               id="metric-motion"
               icon={<Move size={18} />}
               label="Motion"
-              value={motionSensor ? (motionSensor.value > 0 ? 'Detected' : 'Clear') : null}
+              value={motionSensor?.is_valid ? (motionSensor.value > 0 ? 'Detected' : 'Clear') : null}
               status={source}
-              subtitle="PIR sensor"
+              subtitle={motionSensor?.is_valid ? 'From presence sensor' : 'Presence sensor not reporting'}
               color={motionSensor?.value ? 'var(--es-warning)' : 'var(--es-grey)'}
             />
           </StaggerItem>
@@ -302,22 +336,10 @@ const Dashboard: React.FC = () => {
               id="metric-presence"
               icon={<Eye size={18} />}
               label="Presence"
-              value={presence ? (presence.value > 0 ? 'Occupied' : 'Empty') : null}
+              value={presence?.is_valid ? (presence.value > 0 ? 'Occupied' : 'Empty') : null}
               status={source}
-              subtitle="mmWave sensor"
+              subtitle={presence?.is_valid ? 'Presence sensor' : 'Sensor not reporting'}
               color={presence?.value ? 'var(--es-success)' : 'var(--es-grey)'}
-            />
-          </StaggerItem>
-          <StaggerItem>
-            <MetricCard
-              id="metric-power"
-              icon={<Zap size={18} />}
-              label="Power"
-              value={power?.value ?? null}
-              unit="W"
-              status={source}
-              subtitle={power ? `Source: ${power.source}` : 'No sensor connected'}
-              color="var(--es-orange)"
             />
           </StaggerItem>
         </StaggerContainer>
@@ -339,6 +361,22 @@ const Dashboard: React.FC = () => {
                 source={lightDevice?.source || 'unknown'}
                 lastChange={lightDevice?.lastStateChange || undefined}
               />
+              <button
+                id="light-control"
+                className="es-btn es-btn-primary"
+                type="button"
+                onClick={toggleLight}
+                disabled={!lightDevice || lightControlBusy || status.backend !== 'online'}
+                style={{ alignSelf: 'flex-start', marginTop: '0.5rem' }}
+              >
+                <Lightbulb size={16} />
+                {lightControlBusy ? 'Sending...' : lightDevice?.state === 'on' ? 'Turn light off' : 'Turn light on'}
+              </button>
+              {lightControlError && (
+                <div role="alert" style={{ color: 'var(--es-error)', fontSize: '0.8125rem' }}>
+                  {lightControlError}
+                </div>
+              )}
               <DeviceCard
                 id="device-fan"
                 icon={<Fan size={20} />}
@@ -347,6 +385,22 @@ const Dashboard: React.FC = () => {
                 source={fanDevice?.source || 'unknown'}
                 lastChange={fanDevice?.lastStateChange || undefined}
               />
+              <button
+                id="fan-control"
+                className="es-btn es-btn-primary"
+                type="button"
+                onClick={toggleFan}
+                disabled={!fanDevice || fanControlBusy || status.backend !== 'online'}
+                style={{ alignSelf: 'flex-start', marginTop: '0.5rem' }}
+              >
+                <Fan size={16} />
+                {fanControlBusy ? 'Sending...' : fanDevice?.state === 'on' ? 'Turn fan off' : 'Turn fan on'}
+              </button>
+              {fanControlError && (
+                <div role="alert" style={{ color: 'var(--es-error)', fontSize: '0.8125rem' }}>
+                  {fanControlError}
+                </div>
+              )}
             </div>
           </div>
 

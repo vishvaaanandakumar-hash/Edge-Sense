@@ -71,6 +71,28 @@ export interface Device {
   source: DataSource;
 }
 
+export interface DeviceRuntimeSession {
+  id: number;
+  device_id: string;
+  device_name: string;
+  started_at: string;
+  ended_at: string | null;
+  duration_ms: number;
+}
+
+export interface DeviceDailyRuntime {
+  date: string;
+  device_id: string;
+  device_name: string;
+  duration_ms: number;
+}
+
+export interface DeviceRuntimeHistory {
+  date: string;
+  daily_totals: DeviceDailyRuntime[];
+  sessions: DeviceRuntimeSession[];
+}
+
 export interface DeviceCommand {
   id?: number;
   device_id: string;

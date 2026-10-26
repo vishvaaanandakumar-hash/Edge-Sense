@@ -39,6 +39,10 @@ const EnergyPage: React.FC = () => {
   const current = sensors.current;
   const power = sensors.power;
   const energy = sensors.energy;
+  const validVoltage = voltage?.is_valid && voltage.value !== null ? voltage : null;
+  const validCurrent = current?.is_valid && current.value !== null ? current : null;
+  const validPower = power?.is_valid && power.value !== null ? power : null;
+  const validEnergy = energy?.is_valid && energy.value !== null ? energy : null;
 
   const COLORS = ['var(--es-orange)', 'var(--es-yellow)', 'var(--es-success)', 'var(--es-info)'];
 
@@ -67,7 +71,7 @@ const EnergyPage: React.FC = () => {
         </div>
 
         {/* Measurement Notice */}
-        {!voltage && !power && (
+        {!validVoltage && !validPower && (
           <div style={{
             padding: '0.875rem 1rem', borderRadius: 'var(--radius-md)',
             background: 'var(--es-info-glow)', border: '1px solid rgba(96,165,250,0.2)',
@@ -76,8 +80,9 @@ const EnergyPage: React.FC = () => {
           }}>
             <Info size={16} style={{ flexShrink: 0, marginTop: 2 }} />
             <div>
-              <strong>No energy sensor connected.</strong> Connect an INA219 module (low-voltage DC only) for real measurements.
-              {demoMode && ' Currently showing simulated estimates based on device runtime.'}
+              {demoMode
+                ? <><strong>Demo mode is active.</strong> Energy charts show simulated estimates. Connect an INA219 module (low-voltage DC only) for real measurements.</>
+                : <><strong>No valid INA219 readings.</strong> Check the module wiring and measured circuit; unavailable values will remain blank instead of showing simulated power.</>}
             </div>
           </div>
         )}
@@ -93,10 +98,10 @@ const EnergyPage: React.FC = () => {
                 <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Voltage</span>
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-                {voltage ? <AnimatedNumber value={voltage.value} suffix=" V" decimals={2} /> : <span style={{ color: 'var(--text-tertiary)' }}>— V</span>}
+                {validVoltage ? <AnimatedNumber value={validVoltage.value} suffix=" V" decimals={2} /> : <span style={{ color: 'var(--text-tertiary)' }}>— V</span>}
               </div>
               <div style={{ fontSize: '0.6875rem', color: 'var(--text-tertiary)', marginTop: 4 }}>
-                {voltage ? `${voltage.source} measurement` : 'No sensor'}
+                {validVoltage ? `${validVoltage.source} measurement` : 'No valid reading'}
               </div>
             </div>
           </StaggerItem>
@@ -109,10 +114,10 @@ const EnergyPage: React.FC = () => {
                 <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Current</span>
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-                {current ? <AnimatedNumber value={current.value * 1000} suffix=" mA" decimals={1} /> : <span style={{ color: 'var(--text-tertiary)' }}>— mA</span>}
+                {validCurrent ? <AnimatedNumber value={validCurrent.value * 1000} suffix=" mA" decimals={1} /> : <span style={{ color: 'var(--text-tertiary)' }}>— mA</span>}
               </div>
               <div style={{ fontSize: '0.6875rem', color: 'var(--text-tertiary)', marginTop: 4 }}>
-                {current ? `${current.source} measurement` : 'No sensor'}
+                {validCurrent ? `${validCurrent.source} measurement` : 'No valid reading'}
               </div>
             </div>
           </StaggerItem>
@@ -125,10 +130,10 @@ const EnergyPage: React.FC = () => {
                 <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Power</span>
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-                {power ? <AnimatedNumber value={power.value} suffix=" W" decimals={2} /> : <span style={{ color: 'var(--text-tertiary)' }}>— W</span>}
+                {validPower ? <AnimatedNumber value={validPower.value} suffix=" W" decimals={2} /> : <span style={{ color: 'var(--text-tertiary)' }}>— W</span>}
               </div>
               <div style={{ fontSize: '0.6875rem', color: 'var(--text-tertiary)', marginTop: 4 }}>
-                {power ? `${power.source} measurement` : 'No sensor'}
+                {validPower ? `${validPower.source} measurement` : 'No valid reading'}
               </div>
             </div>
           </StaggerItem>
@@ -141,7 +146,7 @@ const EnergyPage: React.FC = () => {
                 <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Est. Cost</span>
               </div>
               <div style={{ fontSize: '1.5rem', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
-                {energyData?.estimated_cost != null ? (
+                {validEnergy && energyData?.estimated_cost != null ? (
                   <AnimatedNumber value={energyData.estimated_cost} prefix={`${settings.currency} `} decimals={2} />
                 ) : (
                   <span style={{ color: 'var(--text-tertiary)' }}>—</span>

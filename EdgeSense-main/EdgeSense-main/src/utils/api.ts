@@ -2,6 +2,8 @@
 // EdgeSense — API Client Utility
 // ============================================================
 
+import type { DeviceRuntimeHistory } from '@/types';
+
 const API_BASE = '/api';
 
 export class ApiError extends Error {
@@ -51,6 +53,8 @@ export const api = {
 
   // Devices
   getDevices: () => request<any>('/devices'),
+  getDeviceRuntime: (date: string) =>
+    request<{ data: DeviceRuntimeHistory }>(`/devices/runtime?date=${encodeURIComponent(date)}`),
   controlDevice: (deviceId: string, command: string, payload?: any) =>
     request<any>(`/devices/${deviceId}/control`, {
       method: 'POST',

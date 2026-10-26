@@ -60,6 +60,12 @@ export function initSocket(): Socket {
     }
   });
 
+  socket.on('alert_resolved', (data: any) => {
+    if (typeof data?.id === 'number') {
+      useAlertStore.getState().resolveAlert(data.id);
+    }
+  });
+
   // ESP32 connection status
   socket.on('hardware_status', (data: any) => {
     if (data?.esp32) {
